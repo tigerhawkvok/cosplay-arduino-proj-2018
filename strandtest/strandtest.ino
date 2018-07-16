@@ -1,150 +1,62 @@
-#include <ArduinoPins.h>
-#include <FatReader.h>
-#include <FatStructs.h>
-#include <mcpDac.h>
-#include <SdInfo.h>
-#include <SdReader.h>
-#include <WaveHC.h>
-#include <Wavemainpage.h>
-#include <WavePinDefs.h>
-#include <WaveUtil.h>
-
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
 
-#define COLOR_PIN 3
-#define POWER_PIN 5
-#define PIN_COUNT 1
+#define PIN 4
 
 
 
+// Parameter 1 = number of pixels in strip
+// Parameter 2 = Arduino pin number (most are valid)
+// Parameter 3 = pixel type flags, add together as needed:
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, PIN, NEO_RGB + NEO_KHZ400);
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIN_COUNT, COLOR_PIN, NEO_RGB + NEO_KHZ400);
+// IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
+// pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
+// and minimize distance between Arduino and first pixel.  Avoid connecting
+// on a live circuit...if you must, connect GND first.
 
-void setup()
-{
-    // Serial connection at speed
-    Serial.begin(57600);
-    Serial.println("Started setup");
-    // Set up the GPIO pins
-    pinMode(POWER_PIN, OUTPUT);
-    pinMode(COLOR_PIN, OUTPUT);
-    digitalWrite(POWER_PIN, HIGH);
-    // Initialize the LEDs
-    strip.begin();
-    strip.show();
+void setup() {
+  // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
+  #if defined (__AVR_ATtiny85__)
+    if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
+  #endif
+  // End of trinket special code
+
+
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
 }
 
-void loop()
-{
-    //Serial.println("Acceleration read start");
-    AccelerationReading reading = Bean.getAcceleration();
-    char x = abs(reading.xAxis) / 2;
-    char y = abs(reading.yAxis) / 2;
-    char z = abs(reading.zAxis) / 2;
-
-    if (detectLidIsOpen(x, y, z)) {
-        //Bean.setLed(42, 49, 147);
-        //Bean.setLed(154, 217, 213);
-        // String coords = String(x) + ", " + String(y) + ", " + String(z);
-        // Serial.println(coords);
-        Serial.println("Open!");
-        digitalWrite(POWER_PIN, HIGH);
-        strip.setBrightness(255);
-        strip.show();
-        //colorAll(strip.Color(0, 255, 0)); // G
-        //colorAll(strip.Color(255, 0, 0)); // R
-        //colorAll(strip.Color(0, 0, 255)); // B
-        //colorAll(strip.Color(42, 49, 147));
-        //colorAll(strip.Color(154, 217, 213));
-        int startColor[] = {42,49,147};
-        int endColor[] = {154,217,213};
-        pulseColors(startColor, endColor, 2000, false);
-    } else {
-        // https://punchthrough.com/products/bean/reference#LED_setLed
-        Bean.setLed(0,0,0);
-        digitalWrite(POWER_PIN, LOW);
-        strip.setBrightness(0);
-        strip.show();
-        Serial.println("Not open");
-    }
-}
-
-
-bool detectLidIsOpen(char x, char y, char z) {
-    /***
-     * Open on desk:
-     *   X: 189       Y: 8         Z: -167
-     *   X: 188       Y: 5         Z: -169
-     *   X: 176       Y: 3         Z: -161
-     *   X: 180       Y: 4         Z: -173
-     * Closed on desk:
-     *   X: 4         Y: 5         Z: -244
-     *   X: 0         Y: 7         Z: -242
-     *   X: 0         Y: 3         Z: -230
-     *   X: -6        Y: 7         Z: -245
-     ***/
-    int openThresholdX = 50;
-    int openThresholdY = 0;
-    int openThresholdZ = 0;
-
-    bool checkOnX = true;
-    bool checkOnY = false;
-    bool checkOnZ = false;
-
-    bool xSaysOpen = false;
-    bool ySaysOpen = false;
-    bool zSaysOpen = false;
-
-    if(checkOnX) {
-        if (int(x) > openThresholdX) {
-            xSaysOpen = true;
-        }
-    } else {
-        xSaysOpen = true;
-    }
-
-    if (checkOnY) {
-        if (int(y) > openThresholdY) {
-            ySaysOpen = true;
-        }
-    } else {
-        ySaysOpen = true;
-    }
-
-    if (checkOnZ) {
-        if (int(z) > openThresholdZ) {
-            zSaysOpen = true;
-        }
-    } else {
-        zSaysOpen = true;
-    }
-
-    return xSaysOpen && ySaysOpen && zSaysOpen;
-
-}
-
-// Fill the dots one after the other with a color
-void colorAll(uint32_t c) {
-  for(uint16_t i=0; i<strip.numPixels(); i++) {
-    strip.setPixelColor(i, c);
-    strip.show();
-  }
+void loop() {
+  // Some example procedures showing how to display to the pixels:
+//   strip.Color(42, 49, 147);
+//   strip.setBrightness(255);
+//   strip.show();
+  int startColor[] = {42,49,147};
+        int endColor[] = {104,255,153};
+        //pulseColors(startColor, endColor, 2000, false);
+        pulseColorsNP(strip.Color(42, 49, 147), strip.Color(104,200,107), 2000, false);
+        //rainbow(500); // works
 }
 
 
 void pulseColors(int arrStartColor[], int arrEndColor[], int endToEndTime, bool hasRecursed) {
-    Serial.println("Start pulse cycle");
+    //Serial.println("Start pulse cycle");
     uint32_t colorStart = strip.Color(arrStartColor[0], arrStartColor[1], arrStartColor[2]);
     uint32_t colorEnd = strip.Color(arrEndColor[0], arrEndColor[1], arrEndColor[2]);
     int binDownTime = int(endToEndTime / 2);
     int binDownDelay = int(binDownTime / 255);
-    Serial.println(binDownDelay);
+    //Serial.println(binDownDelay);
     int currentBrightness = 255;
     bool isDecreasing = true;
-    Bean.setLed(arrStartColor[0], arrStartColor[1], arrStartColor[2]);
+    //Bean.setLed(arrStartColor[0], arrStartColor[1], arrStartColor[2]);
     for (uint16_t i=0; i < int(endToEndTime/binDownDelay); i++) {
         if (currentBrightness > 0 && isDecreasing) {
             // We're still decreasing
@@ -164,7 +76,7 @@ void pulseColors(int arrStartColor[], int arrEndColor[], int endToEndTime, bool 
                 for(uint16_t i2=0; i2<strip.numPixels(); i2++) {
                     strip.setPixelColor(i2, colorEnd);
                 }
-                Bean.setLed(arrEndColor[0], arrEndColor[1], arrEndColor[2]);
+                //Bean.setLed(arrEndColor[0], arrEndColor[1], arrEndColor[2]);
             }
             //Serial.println(currentBrightness);
             strip.setBrightness(currentBrightness);
@@ -172,25 +84,14 @@ void pulseColors(int arrStartColor[], int arrEndColor[], int endToEndTime, bool 
             delay(binDownDelay);
         }
     }
-    Serial.println("Finished pulse cycle");
+    //Serial.println("Finished pulse cycle");
     if (!hasRecursed) {
         pulseColors(arrEndColor, arrStartColor, endToEndTime, true);
     }
 }
 
-// Adafruit color routines
-// Fill the dots one after the other with a color
-void colorWipe(uint32_t c, uint8_t wait) {
-  for(uint16_t i=0; i<strip.numPixels(); i++) {
-    strip.setPixelColor(i, c);
-    strip.show();
-    delay(wait);
-  }
-}
 
-
-
-void pulseColorsNP(uint32_t colorStart, uint32_t colorEnd, int endToEndTime) {
+void pulseColorsNP(uint32_t colorStart, uint32_t colorEnd, int endToEndTime, bool hasRecursed) {
     //Serial.println("Start pulse cycle");
     int binDownTime = int(endToEndTime / 2);
     int binDownDelay = int(binDownTime / 255);
@@ -263,4 +164,47 @@ void pulseColorsNP(uint32_t colorStart, uint32_t colorEnd, int endToEndTime) {
             delay(binDownDelay);
         }
     }
+}
+
+
+
+void rainbow(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256; j++) {
+    for(i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel((i+j) & 255));
+    }
+    strip.show();
+    delay(wait);
+  }
+}
+
+// Slightly different, this makes the rainbow equally distributed throughout
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+    }
+    strip.show();
+    delay(wait);
+  }
+}
+
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
