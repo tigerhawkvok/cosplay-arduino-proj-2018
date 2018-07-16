@@ -1,0 +1,5 @@
+{
+    "board": "adafruit:avr:trinket3",
+    "port": "COM1",
+    "sketch": "strandtest\\strandtest.ino"
+}
