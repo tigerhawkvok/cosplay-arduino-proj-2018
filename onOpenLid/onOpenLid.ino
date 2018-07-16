@@ -20,7 +20,7 @@
 
 
 
-
+// Initialize the "strip" (continuum) of NeoPixels
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIN_COUNT, COLOR_PIN, NEO_RGB + NEO_KHZ400);
 
 void setup()
@@ -46,10 +46,6 @@ void loop()
     char z = abs(reading.zAxis) / 2;
 
     if (detectLidIsOpen(x, y, z)) {
-        //Bean.setLed(42, 49, 147);
-        //Bean.setLed(154, 217, 213);
-        // String coords = String(x) + ", " + String(y) + ", " + String(z);
-        // Serial.println(coords);
         Serial.println("Open!");
         digitalWrite(POWER_PIN, HIGH);
         strip.setBrightness(255);
@@ -85,10 +81,12 @@ bool detectLidIsOpen(char x, char y, char z) {
      *   X: 0         Y: 7         Z: -242
      *   X: 0         Y: 3         Z: -230
      *   X: -6        Y: 7         Z: -245
+     *
+     * Those raw values are abs'd and halved before being input here
      ***/
     int openThresholdX = 50;
     int openThresholdY = 0;
-    int openThresholdZ = 0;
+    int openThresholdZ = 100;
 
     bool checkOnX = true;
     bool checkOnY = false;
@@ -115,7 +113,8 @@ bool detectLidIsOpen(char x, char y, char z) {
     }
 
     if (checkOnZ) {
-        if (int(z) > openThresholdZ) {
+        // Z-axis is SMALLER when opened, rather than larger
+        if (int(z) < openThresholdZ) {
             zSaysOpen = true;
         }
     } else {
@@ -134,7 +133,7 @@ void colorAll(uint32_t c) {
   }
 }
 
-
+// This may or may not be salvageable as a way to light the bean and the NeoPixels at once
 void pulseColors(int arrStartColor[], int arrEndColor[], int endToEndTime, bool hasRecursed) {
     Serial.println("Start pulse cycle");
     uint32_t colorStart = strip.Color(arrStartColor[0], arrStartColor[1], arrStartColor[2]);
@@ -191,6 +190,9 @@ void colorWipe(uint32_t c, uint8_t wait) {
 
 
 void pulseColorsNP(uint32_t colorStart, uint32_t colorEnd, int endToEndTime) {
+    /***
+     * This color pulser tested fine on the Trinket, so it was directly dumped here
+     ***/
     //Serial.println("Start pulse cycle");
     int binDownTime = int(endToEndTime / 2);
     int binDownDelay = int(binDownTime / 255);
@@ -264,3 +266,6 @@ void pulseColorsNP(uint32_t colorStart, uint32_t colorEnd, int endToEndTime) {
         }
     }
 }
+
+
+// TODO SOUND OUTPUT
